@@ -1,0 +1,32 @@
+{
+  "name": "d3-radar-spider",
+  "version": "0.0.1",
+  "description": "D3.js v4 plugin to draw reusable radar charts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mthh/d3-radar-spider.git"
+  },
+  "author": "mthh",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/mthh/d3-radar-spider/issues"
+  },
+  "homepage": "https://github.com/mthh/d3-radar-spider#readme",
+  "devDependencies": {
+    "babel": "^6.23.0",
+    "babel-cli": "^6.24.1",
+    "babel-core": "^6.25.0",
+    "babel-eslint": "^7.2.3",
+    "babel-preset-latest": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1",
+    "eslint": "^4.3.0",
+    "eslint-config-airbnb": "^15.1.0",
+    "eslint-plugin-import": "^2.7.0",
+    "eslint-plugin-jsx-a11y": "^5.1.1",
+    "eslint-plugin-react": "^7.1.0"
+  }
+}

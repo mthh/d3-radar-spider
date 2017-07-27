@@ -1,0 +1,27 @@
+{
+  "parser": "babel-eslint",
+  "extends": "airbnb",
+  "env": {
+    "browser": true,
+    "es6": true,
+    "jest": true
+  },
+  "rules": {
+    "id-length": 0,
+    "no-console": 0,
+    "no-nested-ternary": 0,
+    "no-useless-escape": 0,
+    "max-len": 0,
+    "no-mixed-operators": 0,
+    "no-continue": 0,
+    "no-restricted-syntax": 0,
+    "no-plusplus": 0,
+    "arrow-parens": 0,
+    "arrow-body-style": 0,
+    "import/imports-first": 0,
+    "import/no-unresolved": 0,
+    "import/no-extraneous-dependencies": 0,
+    "one-var": 0,
+    "camelcase": 0,
+  }
+}

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/ >
+		<title>Smoothed Radar Chart</title>
+
+		<!-- Google fonts -->
+		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+
+		<!-- D3.js -->
+		<script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+		<script src="https://d3js.org/d3-path.v1.min.js" charset="utf-8"></script>
+		<script src="../src/index.js" charset="utf-8"></script>
+		<style>
+			body {
+				font-family: 'Open Sans', sans-serif;
+				font-size: 11px;
+				font-weight: 300;
+				fill: #242424;
+				text-align: center;
+				text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+				cursor: default;
+			}
+			.legend {
+				font-family: 'Raleway', sans-serif;
+				fill: #333333;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- <div class="radarChart" style="display: inline-flex;"></div> -->
+		<div class="radarChart2" style="display: inline-flex;"></div>
+		<script>
+			//////////////////////////////////////////////////////////////
+			//////////////////////// Set-Up //////////////////////////////
+			//////////////////////////////////////////////////////////////
+			var margin = { top: 50, right: 120, bottom: 50, left: 120 },
+				width = Math.min(700, window.innerWidth / 4) - margin.left - margin.right,
+				height = Math.min(width, window.innerHeight - margin.top - margin.bottom);
+			//////////////////////////////////////////////////////////////
+			////////////////////////// Data //////////////////////////////
+			//////////////////////////////////////////////////////////////
+			var data2 = [
+				{ name: 'FRE',
+					axes: [
+						{axis: 'Densité (2016)', value: 57},
+						{axis: 'Taux d\'emploi (2014)', value: 35},
+						{axis: 'PIB par habitant en parité (2014)', value: 35},
+						{axis: 'Indice de jeunesse', value: 81},
+					]
+				},
+				{ name: 'BE3',
+          axes: [
+            {axis: 'Densité (2016)', value: 78},
+            {axis: 'Taux d\'emploi (2014)', value: 18},
+            {axis: 'PIB par habitant en parité (2014)', value: 40},
+            {axis: 'Indice de jeunesse', value: 78},
+          ]
+				},
+        { name: 'ITG',
+          axes: [
+            {axis: 'Densité (2016)', value: 5},
+            {axis: 'Taux d\'emploi (2014)', value: 20},
+            {axis: 'PIB par habitant en parité (2014)', value: 5},
+            {axis: 'Indice de jeunesse', value: 40},
+          ]
+				},
+        { name: 'LU0',
+          axes: [
+            {axis: 'Densité (2016)', value: 82},
+            {axis: 'Taux d\'emploi (2014)', value: 100},
+            {axis: 'PIB par habitant en parité (2014)', value: 100},
+            {axis: 'Indice de jeunesse', value: 95},
+          ]
+				},
+        { name: 'Moyenne du contexte',
+          axes: [
+            {axis: 'Densité (2016)', value: 50},
+            {axis: 'Taux d\'emploi (2014)', value: 38},
+            {axis: 'PIB par habitant en parité (2014)', value: 62},
+            {axis: 'Indice de jeunesse', value: 39},
+          ]
+				}
+			];
+      var data = [
+				{ name: 'Allocated budget',
+					axes: [
+						{axis: 'Sales', value: 42},
+						{axis: 'Marketing', value: 20},
+						{axis: 'Development', value: 60},
+						{axis: 'Customer Support', value: 26},
+						{axis: 'Information Technology', value: 35},
+						{axis: 'Administration', value: 20}
+					]
+				},
+				{ name: 'Actual Spending',
+					axes: [
+						{axis: 'Sales', value: 50},
+						{axis: 'Marketing', value: 45},
+						{axis: 'Development', value: 20},
+						{axis: 'Customer Support', value: 20},
+						{axis: 'Information Technology', value: 25},
+						{axis: 'Administration', value: 23}
+					]
+				}
+			];
+
+			// //////////////////////////////////////////////////////////////
+			// ////// First example /////////////////////////////////////////
+      // ///// (not so much options) //////////////////////////////////
+			// //////////////////////////////////////////////////////////////
+			// var radarChartOptions = {
+			//   w: 290,
+			//   h: 350,
+			//   margin: margin,
+			//   levels: 5,
+			//   roundStrokes: true,
+			// 	color: d3.scaleOrdinal().range(["#26AF32", "#762712"]),
+			// 	format: '.0f'
+			// };
+			// // Draw the chart, get a reference the created svg element :
+			// let radar1 = RadarChart(".radarChart", data, radarChartOptions);
+			//////////////////////////////////////////////////////////////
+			///// Second example /////////////////////////////////////////
+			///// Chart legend, custom color, custom unit, etc. //////////
+			//////////////////////////////////////////////////////////////
+			var radarChartOptions2 = {
+			  w: 290,
+			  h: 350,
+			  margin: margin,
+			  maxValue: 100,
+			  levels: 6,
+			  roundStrokes: false,
+			  color: d3.scaleOrdinal().range(["yellow", "blue", "gray", "green"]),
+				format: '.0f',
+				legend: { title: 'Organization XYZ', translateX: 170, translateY: 40 },
+				unit: '%'
+			};
+			// Draw the chart, get a reference the created svg element :
+			let radar2 = RadarChart(".radarChart2", data, radarChartOptions2);
+		</script>
+	</body>
+</html>
