@@ -46,7 +46,7 @@ const move = function move(array, from, to) {
 const swap = function swap(array, ix1, ix2) {
   [array[ix1], array[ix2]] = [array[ix2], array[ix1]];
   return array;
-}
+};
 
 const RadarChart = function RadarChart(parent_selector, data, options) {
   const cfg = {
@@ -74,15 +74,15 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       if (typeof options[i] !== 'undefined') { cfg[i] = options[i]; }
     }
   }
-  const ref_ids = []
+  const ref_ids = [];
   // If the supplied maxValue is smaller than the actual one, replace by the max in the data
   // var maxValue = max(cfg.maxValue, d3.max(data, function(i){return d3.max(i.map(function(o){return o.value;}))}));
   let maxValue = 0;
   for (let j = 0; j < data.length; j++) {
-    const on_axes = []
+    const on_axes = [];
     for (let i = 0; i < data[j].axes.length; i++) {
       data[j].axes[i].id = data[j].name;
-      on_axes.push(data[j].name)
+      on_axes.push(data[j].name);
       if (data[j].axes[i].value > maxValue) {
         maxValue = data[j].axes[i].value;
       }
@@ -346,18 +346,18 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       .text(d => d);
   }
 
-  this.inverse_data = function (field) {
-    const data_length = _this.data.length;
+  this.inverse_data = (field) => {
+    const data_length = this.data.length;
     if (!field) {
       for (let i = 0; i < data_length; i++) {
-        const ax = _this.data[i].axes;
+        const ax = this.data[i].axes;
         for (let j = 0; j < ax.length; j++) {
           ax[j].value = 100 - ax[j].value;
         }
       }
     } else {
       for (let i = 0; i < data_length; i++) {
-        const ax = _this.data[i].axes;
+        const ax = this.data[i].axes;
         for (let j = 0; j < ax.length; j++) {
           if (ax[j].axis === field) {
             ax[j].value = 100 - ax[j].value;
@@ -368,22 +368,31 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
     this.update_data();
   };
 
-  this.update_data = function (new_data) {
+  this.add_element = (elem) => {
+    const n_axis = elem.axes.map(i => i.axis);
+    if (!(JSON.stringify(n_axis) === JSON.stringify(this.allAxis))) {
+      throw new Error('Expected element with same axes name than existing data.');
+    }
+    this.data.push(elem);
+
+  };
+
+  this.update_data = (new_data) => {
     if (new_data) {
-      const new_axis = new_data[0].axes.map((i, j) => i.axis)
+      const new_axis = new_data[0].axes.map((i) => i.axis);
       if (new_axis.length !== this.allAxis.length) {
-        return;
+        throw new Error('Invalid number of axis. Can Only update with same axis.');
       }
       this.data = new_data;
       this.allAxis = new_axis;
     } else {
-      this.allAxis = this.data[0].axes.map((i, j) => i.axis);
+      this.allAxis = this.data[0].axes.map(i => i.axis);
     }
 
-    const axis = axisGrid.selectAll('.axis')
+    const update_axis = axisGrid.selectAll('.axis')
       .data(this.allAxis);
 
-    let t = g.selectAll('.radarWrapper')
+    const t = g.selectAll('.radarWrapper')
       .transition()
       .duration(375);
       // .on('end', () => {
@@ -392,7 +401,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       //     .call(wrap, cfg.wrapWidth);
       //   // wrap(parent.selectAll('text.legend'), cfg.wrapWidth);
       // });
-    axis.select('text.legend')
+    update_axis.select('text.legend')
       .attr('id', (d, i) => i)
       .attr('x', (d, i) => rScale(maxValue * cfg.labelFactor) * cos(angleSlice * i - HALF_PI))
       .attr('y', (d, i) => rScale(maxValue * cfg.labelFactor) * sin(angleSlice * i - HALF_PI))
@@ -400,18 +409,18 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       .call(wrap, cfg.wrapWidth);
 
 
-    const blobWrapper = g.selectAll('.radarWrapper')
+    const update_blobWrapper = g.selectAll('.radarWrapper')
       .data(this.data);
 
-    blobWrapper.select('.radarArea')
+    update_blobWrapper.select('.radarArea')
       .transition(t)
       .attr('d', d => radarLine(d.axes));
 
-    blobWrapper.select('.radarStroke')
+    update_blobWrapper.select('.radarStroke')
       .transition(t)
       .attr('d', d => radarLine(d.axes));
 
-    const circle = blobWrapper.selectAll('.radarCircle')
+    const circle = update_blobWrapper.selectAll('.radarCircle')
       .data(d => d.axes);
     circle
       .transition(t)
@@ -422,12 +431,10 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
   };
 
 
-  this.round_stroke = function (val) {
+  this.round_stroke = (val) => {
     if (val === undefined) {
       return cfg.roundStrokes;
-    } else if (val === cfg.roundStrokes) {
-      return;
-    } else {
+    } else if (val !== cfg.roundStrokes) {
       cfg.roundStrokes = val;
       radarLine = d3.radialLine()
         .curve(cfg.roundStrokes ? d3.curveCardinalClosed : d3.curveLinearClosed)
@@ -435,7 +442,8 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
         .angle((d, i) => i * angleSlice);
       this.update_data();
     }
-  }
+    return val;
+  };
 
   function labelClicked() {
     const ix = +this.id;
@@ -452,21 +460,21 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
     _this.update_data();
   }
 
-  function updateLegend(names) {
-    const legend = parent.select('#legendZone');
-    const elems = legend.selectAll('g')
-      .data(names);
-    elems.select('rect')
-      .attr('x', cfg.w - 65)
-      .attr('y', (d, i) => i * 20)
-      .attr('width', 10)
-      .attr('height', 10)
-      .style('fill', (d, i) => cfg.color(d));
-    elems.select('text')
-      .attr('x', cfg.w - 52)
-      .attr('y', (d, i) => i * 20 + 9)
-      .text(d => d);
-  }
+  // function updateLegend(names) {
+  //   const legend = parent.select('#legendZone');
+  //   const elems = legend.selectAll('g')
+  //     .data(names);
+  //   elems.select('rect')
+  //     .attr('x', cfg.w - 65)
+  //     .attr('y', (d, i) => i * 20)
+  //     .attr('width', 10)
+  //     .attr('height', 10)
+  //     .style('fill', (d, i) => cfg.color(d));
+  //   elems.select('text')
+  //     .attr('x', cfg.w - 52)
+  //     .attr('y', (d, i) => i * 20 + 9)
+  //     .text(d => d);
+  // }
 
   this.data = data;
   // return this;
