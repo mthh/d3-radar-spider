@@ -11,8 +11,7 @@ const wrap = (_text, width) => {
       y = text.attr('y'),
       x = text.attr('x'),
       dy = parseFloat(text.attr('dy'));
-    let word,
-      line = [],
+    let line = [],
       lineNumber = 0;
     let tspan = text.text(null)
       .append('tspan')
@@ -20,7 +19,7 @@ const wrap = (_text, width) => {
       .attr('y', y)
       .attr('dy', `${dy}em`);
 
-    word = words.pop();
+    let word = words.pop();
     while (word) {
       line.push(word);
       tspan.text(line.join(' '));
@@ -93,7 +92,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
   maxValue = max(cfg.maxValue, maxValue);
   const _this = this;
   this.allAxis = data[0].axes.map((i, j) => i.axis); // Names of each axis
-  const total = allAxis.length, // The number of different axes
+  const total = this.allAxis.length, // The number of different axes
     radius = Math.min(cfg.w / 2, cfg.h / 2), // Radius of the outermost circle
     Format = d3.format(cfg.format), // Formatting
     angleSlice = Math.PI * 2 / total; // The width in radians of each "slice"
@@ -307,7 +306,6 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
         .style('display', 'none').text('');
     });
 
-
   if (cfg.legend !== false && typeof cfg.legend === 'object') {
     const legendZone = svg.append('g')
       .attr('id', 'legendZone')
@@ -348,29 +346,42 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       .text(d => d);
   }
 
-  this.inverse_data = function () {
+  this.inverse_data = function (field) {
     const data_length = _this.data.length;
-    for (let i = 0; i < data_length; i++) {
-      const ax = _this.data[i].axes;
-      for (let j = 0; j < ax.length; j++) {
-        ax[j].value = 100 - ax[j].value;
+    if (!field) {
+      for (let i = 0; i < data_length; i++) {
+        const ax = _this.data[i].axes;
+        for (let j = 0; j < ax.length; j++) {
+          ax[j].value = 100 - ax[j].value;
+        }
+      }
+    } else {
+      for (let i = 0; i < data_length; i++) {
+        const ax = _this.data[i].axes;
+        for (let j = 0; j < ax.length; j++) {
+          if (ax[j].axis === field) {
+            ax[j].value = 100 - ax[j].value;
+          }
+        }
       }
     }
-    this.update_data(_this.data);
+    this.update_data();
   };
 
-  // ///////////////////////////////////////////////////////
-  // ////////////////// Draw the axes //////////////////////
-  // ///////////////////////////////////////////////////////
   this.update_data = function (new_data) {
-    const new_axis = new_data[0].axes.map((i, j) => i.axis)
-    if (new_axis.length !== _this.allAxis.length) {
-      return;
+    if (new_data) {
+      const new_axis = new_data[0].axes.map((i, j) => i.axis)
+      if (new_axis.length !== this.allAxis.length) {
+        return;
+      }
+      this.data = new_data;
+      this.allAxis = new_axis;
+    } else {
+      this.allAxis = this.data[0].axes.map((i, j) => i.axis);
     }
-    _this.allAxis = new_axis;
-    _this.data = new_data;
+
     const axis = axisGrid.selectAll('.axis')
-      .data(_this.allAxis);
+      .data(this.allAxis);
 
     let t = g.selectAll('.radarWrapper')
       .transition()
@@ -390,7 +401,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
 
 
     const blobWrapper = g.selectAll('.radarWrapper')
-      .data(_this.data);
+      .data(this.data);
 
     blobWrapper.select('.radarArea')
       .transition(t)
@@ -410,6 +421,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       .style('fill-opacity', 0.8);
   };
 
+
   this.round_stroke = function (val) {
     if (val === undefined) {
       return cfg.roundStrokes;
@@ -421,7 +433,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
         .curve(cfg.roundStrokes ? d3.curveCardinalClosed : d3.curveLinearClosed)
         .radius(d => rScale(d.value))
         .angle((d, i) => i * angleSlice);
-      this.update_data(this.data);
+      this.update_data();
     }
   }
 
@@ -437,7 +449,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
         move(_this.data[i].axes, ix, new_ix);
       }
     }
-    _this.update_data(_this.data);
+    _this.update_data();
   }
 
   function updateLegend(names) {
@@ -457,5 +469,5 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
   }
 
   this.data = data;
-  return this;
+  // return this;
 };
