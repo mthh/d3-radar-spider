@@ -1,3 +1,5 @@
+import * as d3 from 'd3';
+
 const max = Math.max;
 const sin = Math.sin;
 const cos = Math.cos;
@@ -44,11 +46,27 @@ const move = function move(array, from, to) {
 };
 
 const swap = function swap(array, ix1, ix2) {
-  [array[ix1], array[ix2]] = [array[ix2], array[ix1]];
+  [array[ix1], array[ix2]] = [array[ix2], array[ix1]]; // eslint-disable-line no-param-reassign
   return array;
 };
 
 const RadarChart = function RadarChart(parent_selector, data, options) {
+  const _this = this; // eslint-disable-line no-underscore-dangle
+  function labelClicked() {
+    const ix = +this.id;
+    if (ix + 1 === _this.allAxis.length) {
+      for (let i = 0; i < _this.data.length; i++) {
+        swap(_this.data[i].axes, ix, 0);
+      }
+    } else {
+      const new_ix = ix + 1;
+      for (let i = 0; i < _this.data.length; i++) {
+        move(_this.data[i].axes, ix, new_ix);
+      }
+    }
+    _this.update_data();
+  }
+
   const cfg = {
     w: 600, // Width of the circle
     h: 600, // Height of the circle
@@ -66,6 +84,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
     format: '.2%', // The format string to be used by d3.format
     unit: '', // The unit to display after the number on the axis and point tooltips (like $, €, %, etc)
     legend: false,
+    allowInverseData: false,
   };
 
   // Put all of the options into a variable called cfg
@@ -90,8 +109,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
     }
   }
   maxValue = max(cfg.maxValue, maxValue);
-  const _this = this;
-  this.allAxis = data[0].axes.map((i, j) => i.axis); // Names of each axis
+  this.allAxis = data[0].axes.map(i => i.axis); // Names of each axis
   const total = this.allAxis.length, // The number of different axes
     radius = Math.min(cfg.w / 2, cfg.h / 2), // Radius of the outermost circle
     Format = d3.format(cfg.format), // Formatting
@@ -125,11 +143,11 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
   // ///////////////////////////////////////////////////////
 
   // Filter for the outside glow
-  const filter = g.append('defs').append('filter').attr('id', 'glow'),
-    feGaussianBlur = filter.append('feGaussianBlur').attr('stdDeviation', '2.5').attr('result', 'coloredBlur'),
-    feMerge = filter.append('feMerge'),
-    feMergeNode_1 = feMerge.append('feMergeNode').attr('in', 'coloredBlur'),
-    feMergeNode_2 = feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+  const filter = g.append('defs').append('filter').attr('id', 'glow');
+  filter.append('feGaussianBlur').attr('stdDeviation', '2.5').attr('result', 'coloredBlur');
+  const feMerge = filter.append('feMerge');
+  feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+  feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
   // ///////////////////////////////////////////////////////
   // ///////////// Draw the Circular grid //////////////////
@@ -230,7 +248,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       blobWrapper.selectAll('.radarArea')
         .transition().duration(200)
         .style('fill-opacity', cfg.opacityArea);
-    })
+    });
     // .on('click', function () {
     //   const p = this.parentElement;
     //   if (p.previousSibling.className !== 'tooltip') {
@@ -246,7 +264,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
   // Create the outlines
   blobWrapper.append('path')
     .attr('class', 'radarStroke')
-    .attr('d', (d) =>  radarLine(d.axes))
+    .attr('d', (d) => radarLine(d.axes))
     .style('stroke-width', `${cfg.strokeWidth}px`)
     .style('stroke', (d, i) => cfg.color(i))
     .style('fill', 'none')
@@ -345,28 +363,29 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       .attr('fill', '#737373')
       .text(d => d);
   }
-
-  this.inverse_data = (field) => {
-    const data_length = this.data.length;
-    if (!field) {
-      for (let i = 0; i < data_length; i++) {
-        const ax = this.data[i].axes;
-        for (let j = 0; j < ax.length; j++) {
-          ax[j].value = 100 - ax[j].value;
-        }
-      }
-    } else {
-      for (let i = 0; i < data_length; i++) {
-        const ax = this.data[i].axes;
-        for (let j = 0; j < ax.length; j++) {
-          if (ax[j].axis === field) {
+  if (cfg.allowInverseData) {
+    this.inverse_data = (field) => {
+      const data_length = this.data.length;
+      if (!field) {
+        for (let i = 0; i < data_length; i++) {
+          const ax = this.data[i].axes;
+          for (let j = 0; j < ax.length; j++) {
             ax[j].value = 100 - ax[j].value;
           }
         }
+      } else {
+        for (let i = 0; i < data_length; i++) {
+          const ax = this.data[i].axes;
+          for (let j = 0; j < ax.length; j++) {
+            if (ax[j].axis === field) {
+              ax[j].value = 100 - ax[j].value;
+            }
+          }
+        }
       }
-    }
-    this.update_data();
-  };
+      this.update_data();
+    };
+  }
 
   this.add_element = (elem) => {
     const n_axis = elem.axes.map(i => i.axis);
@@ -374,7 +393,6 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
       throw new Error('Expected element with same axes name than existing data.');
     }
     this.data.push(elem);
-
   };
 
   this.update_data = (new_data) => {
@@ -445,21 +463,6 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
     return val;
   };
 
-  function labelClicked() {
-    const ix = +this.id;
-    if (ix + 1 === _this.allAxis.length) {
-      for (let i = 0; i < _this.data.length; i++) {
-        swap(_this.data[i].axes, ix, 0);
-      }
-    } else {
-      const new_ix = ix + 1;
-      for (let i = 0; i < _this.data.length; i++) {
-        move(_this.data[i].axes, ix, new_ix);
-      }
-    }
-    _this.update_data();
-  }
-
   // function updateLegend(names) {
   //   const legend = parent.select('#legendZone');
   //   const elems = legend.selectAll('g')
@@ -475,7 +478,7 @@ const RadarChart = function RadarChart(parent_selector, data, options) {
   //     .attr('y', (d, i) => i * 20 + 9)
   //     .text(d => d);
   // }
-
   this.data = data;
-  // return this;
 };
+
+export default RadarChart;
