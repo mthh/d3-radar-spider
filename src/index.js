@@ -52,7 +52,30 @@ const swap = function swap(array, ix1, ix2) {
 
 
 class RadarChart {
-  constructor(data, parent, options) {
+  constructor(parent_selector, data, options) {
+    const self = this;
+    const labelClicked = function labelClicked() {
+      const ix = +this.id;
+      if (ix + 1 === self.allAxis.length) {
+        for (let i = 0; i < self.data.length; i++) {
+          swap(self.data[i].axes, ix, 0);
+        }
+      } else {
+        const new_ix = ix + 1;
+        for (let i = 0; i < self.data.length; i++) {
+          move(self.data[i].axes, ix, new_ix);
+        }
+      }
+      self.update_data();
+    }
+
+    const labelCtxMenu = function labelCtxMenu(label) {
+      d3.event.stopPropagation();
+      d3.event.preventDefault();
+      const ix = +this.id;
+      self.inverse_data(label);
+    }
+
     const cfg = {
       w: 600, // Width of the circle
       h: 600, // Height of the circle
@@ -60,7 +83,7 @@ class RadarChart {
       levels: 3, // How many levels or inner circles should there be drawn
       maxValue: 0, // What is the value that the biggest circle will represent
       labelFactor: 1.25, // How much farther than the radius of the outer circle should the labels be placed
-      wrapWidth: 60, // The number of pixels after which a label needs to be given a new line
+      wrapWidth: 70, // The number of pixels after which a label needs to be given a new line
       opacityArea: 0.35, // The opacity of the area of the blob
       dotRadius: 4, // The size of the colored circles of each blog
       opacityCircles: 0.1, // The opacity of the circles of each blob
@@ -80,22 +103,23 @@ class RadarChart {
       }
     }
     const ref_ids = [];
+    this.data = data.slice();
     // If the supplied maxValue is smaller than the actual one, replace by the max in the data
     // var maxValue = max(cfg.maxValue, d3.max(data, function(i){return d3.max(i.map(function(o){return o.value;}))}));
     let maxValue = 0;
-    for (let j = 0; j < data.length; j++) {
+    for (let j = 0; j < this.data.length; j++) {
       const on_axes = [];
-      for (let i = 0; i < data[j].axes.length; i++) {
-        data[j].axes[i].id = data[j].name;
-        on_axes.push(data[j].name);
-        if (data[j].axes[i].value > maxValue) {
-          maxValue = data[j].axes[i].value;
+      for (let i = 0; i < this.data[j].axes.length; i++) {
+        this.data[j].axes[i].id = this.data[j].name;
+        on_axes.push(this.data[j].name);
+        if (this.data[j].axes[i].value > maxValue) {
+          maxValue = this.data[j].axes[i].value;
         }
         ref_ids.push(on_axes);
       }
     }
     maxValue = max(cfg.maxValue, maxValue);
-    this.allAxis = data[0].axes.map(i => i.axis); // Names of each axis
+    this.allAxis = this.data[0].axes.map(i => i.axis); // Names of each axis
     const total = this.allAxis.length, // The number of different axes
       radius = Math.min(cfg.w / 2, cfg.h / 2), // Radius of the outermost circle
       Format = d3.format(cfg.format), // Formatting
@@ -129,8 +153,12 @@ class RadarChart {
     // ///////////////////////////////////////////////////////
 
     // Filter for the outside glow
-    const filter = g.append('defs').append('filter').attr('id', 'glow');
-    filter.append('feGaussianBlur').attr('stdDeviation', '2.5').attr('result', 'coloredBlur');
+    const filter = g.append('defs')
+      .append('filter')
+      .attr('id', 'glow');
+    filter.append('feGaussianBlur')
+      .attr('stdDeviation', '2.5')
+      .attr('result', 'coloredBlur');
     const feMerge = filter.append('feMerge');
     feMerge.append('feMergeNode').attr('in', 'coloredBlur');
     feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
@@ -193,6 +221,7 @@ class RadarChart {
       .attr('y', (d, i) => rScale(maxValue * cfg.labelFactor) * sin(angleSlice * i - HALF_PI))
       .text(d => d)
       .on('click', labelClicked)
+      .on('contextmenu', cfg.allowInverseData ? labelCtxMenu : null)
       .call(wrap, cfg.wrapWidth);
 
     // ///////////////////////////////////////////////////////
@@ -200,22 +229,23 @@ class RadarChart {
     // ///////////////////////////////////////////////////////
 
     // The radial line function
-    let radarLine = d3.radialLine()
+    this.radarLine = d3.radialLine()
       .curve(cfg.roundStrokes ? d3.curveCardinalClosed : d3.curveLinearClosed)
       .radius(d => rScale(d.value))
       .angle((d, i) => i * angleSlice);
 
     // Create a wrapper for the blobs
     const blobWrapper = g.selectAll('.radarWrapper')
-      .data(data)
-      .enter().append('g')
+      .data(this.data)
+      .enter()
+      .append('g')
       .attr('class', 'radarWrapper');
 
     // Append the backgrounds
     blobWrapper
       .append('path')
       .attr('class', 'radarArea')
-      .attr('d', d => radarLine(d.axes))
+      .attr('d', d => this.radarLine(d.axes))
       .style('fill', (d, i) => cfg.color(i))
       .style('fill-opacity', 0)
       .style('fill-opacity', cfg.opacityArea)
@@ -250,7 +280,7 @@ class RadarChart {
     // Create the outlines
     blobWrapper.append('path')
       .attr('class', 'radarStroke')
-      .attr('d', (d) => radarLine(d.axes))
+      .attr('d', (d) => this.radarLine(d.axes))
       .style('stroke-width', `${cfg.strokeWidth}px`)
       .style('stroke', (d, i) => cfg.color(i))
       .style('fill', 'none')
@@ -283,14 +313,16 @@ class RadarChart {
 
     // Wrapper for the invisible circles on top
     const blobCircleWrapper = g.selectAll('.radarCircleWrapper')
-      .data(data)
-      .enter().append('g')
+      .data(this.data)
+      .enter()
+      .append('g')
       .attr('class', 'radarCircleWrapper');
 
     // Append a set of invisible circles on top for the mouseover pop-up
     blobCircleWrapper.selectAll('.radarInvisibleCircle')
       .data(d => d.axes)
-      .enter().append('circle')
+      .enter()
+      .append('circle')
       .attr('class', 'radarInvisibleCircle')
       .attr('r', cfg.dotRadius * 1.5)
       .attr('cx', (d, i) => rScale(d.value) * cos(angleSlice * i - HALF_PI))
@@ -315,7 +347,7 @@ class RadarChart {
         .attr('id', 'legendZone')
         .attr('class', 'legend')
         .attr('transform', `translate(${cfg.legend.translateX},${cfg.legend.translateY + 20})`);
-      const names = data.map(el => el.name);
+      const names = this.data.map(el => el.name);
       if (cfg.legend.title) {
         legendZone.append('text')
           .attr('class', 'title')
@@ -349,6 +381,14 @@ class RadarChart {
         .attr('fill', '#737373')
         .text(d => d);
     }
+
+    this.g = g;
+    this.axisGrid = axisGrid;
+    this.rScale = rScale;
+    this.cfg = cfg;
+    this.maxValue = maxValue;
+    this.angleSlice = angleSlice;
+
     if (cfg.allowInverseData) {
       this.inverse_data = (field) => {
         const data_length = this.data.length;
@@ -374,25 +414,6 @@ class RadarChart {
     }
   }
 
-  labelClicked() {
-    const ix = +this.id;
-    if (ix + 1 === this.allAxis.length) {
-      for (let i = 0; i < this.data.length; i++) {
-        swap(this.data[i].axes, ix, 0);
-      }
-    } else {
-      const new_ix = ix + 1;
-      for (let i = 0; i < this.data.length; i++) {
-        move(this.data[i].axes, ix, new_ix);
-      }
-    }
-    this.update_date();
-  }
-
-  update_data() {
-
-  }
-
   add_element(elem) {
     const n_axis = elem.axes.map(i => i.axis);
     if (!(JSON.stringify(n_axis) === JSON.stringify(this.allAxis))) {
@@ -401,7 +422,17 @@ class RadarChart {
     this.data.push(elem);
   }
 
+  changeOrder() {
+    this.data = this.data.slice(1,this.data.length).concat(this.data.slice(0,1));
+    this.update_data();
+  }
+
   update_data(new_data) {
+    const rScale = this.rScale;
+    const maxValue = this.maxValue;
+    const cfg = this.cfg;
+    const angleSlice = this.angleSlice;
+
     if (new_data) {
       const new_axis = new_data[0].axes.map(elem => elem.axis);
       if (!(JSON.stringify(n_axis) === JSON.stringify(this.allAxis))) {
@@ -413,40 +444,12 @@ class RadarChart {
       this.allAxis = this.data[0].axes.map(elem => elem.axis);
     }
 
-    const update_axis = axisGrid.selectAll('.axis')
+    const update_axis = this.axisGrid.selectAll('.axis')
       .data(this.allAxis);
 
-  }
-
-}
-
-
-  this.add_element = (elem) => {
-    const n_axis = elem.axes.map(i => i.axis);
-    if (!(JSON.stringify(n_axis) === JSON.stringify(this.allAxis))) {
-      throw new Error('Expected element with same axes name than existing data.');
-    }
-    this.data.push(elem);
-  };
-
-  this.update_data = (new_data) => {
-    if (new_data) {
-      const new_axis = new_data[0].axes.map((i) => i.axis);
-      if (new_axis.length !== this.allAxis.length) {
-        throw new Error('Invalid number of axis. Can Only update with same axis.');
-      }
-      this.data = new_data;
-      this.allAxis = new_axis;
-    } else {
-      this.allAxis = this.data[0].axes.map(i => i.axis);
-    }
-
-    const update_axis = axisGrid.selectAll('.axis')
-      .data(this.allAxis);
-
-    const t = g.selectAll('.radarWrapper')
+    const t = this.g.selectAll('.radarWrapper')
       .transition()
-      .duration(375);
+      .duration(225)
       // .on('end', () => {
       //   parent.selectAll('text.legend')
       //     .text(d => d)
@@ -461,16 +464,16 @@ class RadarChart {
       .call(wrap, cfg.wrapWidth);
 
 
-    const update_blobWrapper = g.selectAll('.radarWrapper')
+    const update_blobWrapper = this.g.selectAll('.radarWrapper')
       .data(this.data);
 
     update_blobWrapper.select('.radarArea')
       .transition(t)
-      .attr('d', d => radarLine(d.axes));
+      .attr('d', d => this.radarLine(d.axes));
 
     update_blobWrapper.select('.radarStroke')
       .transition(t)
-      .attr('d', d => radarLine(d.axes));
+      .attr('d', d => this.radarLine(d.axes));
 
     const circle = update_blobWrapper.selectAll('.radarCircle')
       .data(d => d.axes);
@@ -480,22 +483,32 @@ class RadarChart {
       .attr('cy', (d, i) => rScale(d.value) * sin(angleSlice * i - HALF_PI))
       .style('fill', (d) => cfg.color(d.id))
       .style('fill-opacity', 0.8);
-  };
 
+    const update_blobCircleWrapper = this.g.selectAll('.radarCircleWrapper')
+      .data(this.data);
 
-  this.round_stroke = (val) => {
+    const invisibleCircle = update_blobCircleWrapper.selectAll('.radarInvisibleCircle')
+      .data(d => d.axes);
+    invisibleCircle
+      .transition(t)
+      .attr('cx', (d, i) => rScale(d.value) * cos(angleSlice * i - HALF_PI))
+      .attr('cy', (d, i) => rScale(d.value) * sin(angleSlice * i - HALF_PI));
+
+  }
+  round_stroke(val) {
     if (val === undefined) {
-      return cfg.roundStrokes;
-    } else if (val !== cfg.roundStrokes) {
-      cfg.roundStrokes = val;
-      radarLine = d3.radialLine()
-        .curve(cfg.roundStrokes ? d3.curveCardinalClosed : d3.curveLinearClosed)
+      return this.cfg.roundStrokes;
+    } else if (val !== this.cfg.roundStrokes) {
+      this.cfg.roundStrokes = val;
+      this.radarLine = d3.radialLine()
+        .curve(this.cfg.roundStrokes ? d3.curveCardinalClosed : d3.curveLinearClosed)
         .radius(d => rScale(d.value))
         .angle((d, i) => i * angleSlice);
       this.update_data();
     }
     return val;
-  };
+  }
+}
 
   // function updateLegend(names) {
   //   const legend = parent.select('#legendZone');
@@ -512,7 +525,4 @@ class RadarChart {
   //     .attr('y', (d, i) => i * 20 + 9)
   //     .text(d => d);
   // }
-  this.data = data;
-};
-
 export default RadarChart;
